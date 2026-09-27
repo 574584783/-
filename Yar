@@ -1,0 +1,384 @@
+pluginManagement {
+    repositories {
+        google()
+        mavenCentral()
+        gradlePluginPortal()
+    }
+}
+dependencyResolutionManagement {
+    repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+    repositories {
+        google()
+        mavenCentral()
+    }
+}
+
+rootProject.name = "PayamYar"
+include(":app")plugins {
+    id("com.android.application") version "8.5.2" apply false
+    id("org.jetbrains.kotlin.android") version "1.9.24" apply false
+}plugins {
+    id("com.android.application")
+    id("org.jetbrains.kotlin.android")
+}
+
+android {
+    namespace = "com.example.payamyar"
+    compileSdk = 34
+
+    defaultConfig {
+        applicationId = "com.example.payamyar"
+        minSdk = 24
+        targetSdk = 34
+        versionCode = 1
+        versionName = "1.0"
+    }
+
+    buildFeatures {
+        compose = true
+    }
+
+    composeOptions {
+        kotlinCompilerExtensionVersion = "1.5.14"
+    }
+
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_1_8
+        targetCompatibility = JavaVersion.VERSION_1_8
+    }
+
+    kotlinOptions {
+        jvmTarget = "1.8"
+    }
+}
+
+dependencies {
+    implementation("androidx.core:core-ktx:1.13.1")
+    implementation("androidx.activity:activity-compose:1.9.0")
+    implementation(platform("androidx.compose:compose-bom:2024.06.00"))
+    implementation("androidx.compose.ui:ui")
+    implementation("androidx.compose.ui:ui-graphics")
+    implementation("androidx.compose.material:material-icons-extended")
+    implementation("androidx.compose.material3:material3")
+    implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.8.2")
+}<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <application
+        android:allowBackup="true"
+        android:label="@string/app_name"
+        android:supportsRtl="true"
+        android:theme="@android:style/Theme.Material.Light.NoActionBar">
+
+        <activity
+            android:name=".MainActivity"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+    </application>
+
+</manifest><resources>
+    <string name="app_name">پیام یار</string>
+</resources>package com.example.payamyar
+
+data class Message(val text: String, val isMine: Boolean, val time: String)
+
+data class Chat(
+    val id: Int,
+    val name: String,
+    val lastMessage: String,
+    val time: String,
+    val unreadCount: Int,
+    val avatarLetter: String,
+    val avatarColorArgb: Long
+)
+
+data class Contact(
+    val id: Int,
+    val name: String,
+    val status: String,
+    val avatarLetter: String,
+    val avatarColorArgb: Long
+)
+
+object DemoData {
+    val chats = listOf(
+        Chat(1, "علی رضایی", "سلام، خوبی؟", "10:24", 2, "ع", 0xFF4CAF50),
+        Chat(2, "گروه خانواده", "مامان: ناهار آماده‌ست", "09:15", 0, "خ", 0xFFFF9800),
+        Chat(3, "سارا محمدی", "باشه، فردا میبینمت", "دیروز", 0, "س", 0xFFE91E63),
+        Chat(4, "کانال اخبار", "آخرین خبرها را دنبال کنید", "دیروز", 5, "ک", 0xFF3F51B5),
+        Chat(5, "رضا احمدی", "ممنون بابت کمکت 🙏", "شنبه", 0, "ر", 0xFF009688)
+    )
+
+    val contacts = listOf(
+        Contact(1, "علی رضایی", "آنلاین", "ع", 0xFF4CAF50),
+        Contact(2, "سارا محمدی", "آخرین بازدید: امروز", "س", 0xFFE91E63),
+        Contact(3, "رضا احمدی", "آنلاین", "ر", 0xFF009688),
+        Contact(4, "مریم کریمی", "آخرین بازدید: دیروز", "م", 0xFF9C27B0),
+        Contact(5, "حسین نوری", "آنلاین", "ح", 0xFF00BCD4)
+    )
+}package com.example.payamyar
+
+import android.os.Bundle
+import androidx.activity.ComponentActivity
+import androidx.activity.compose.setContent
+import androidx.compose.foundation.layout.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Chat
+import androidx.compose.material.icons.filled.People
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+
+class MainActivity : ComponentActivity() {
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        setContent {
+            MaterialTheme(
+                colorScheme = lightColorScheme(
+                    primary = Color(0xFF0E9BB9),
+                    secondary = Color(0xFF0E9BB9)
+                )
+            ) {
+                Surface(modifier = Modifier.fillMaxSize()) {
+                    AppRoot()
+                }
+            }
+        }
+    }
+}
+
+sealed class Screen {
+    object ChatsTab : Screen()
+    object ContactsTab : Screen()
+    object SettingsTab : Screen()
+    data class ChatDetail(val chat: Chat) : Screen()
+}
+
+@Composable
+fun AppRoot() {
+    var currentScreen by remember { mutableStateOf<Screen>(Screen.ChatsTab) }
+
+    Scaffold(
+        bottomBar = {
+            if (currentScreen !is Screen.ChatDetail) {
+                NavigationBar {
+                    NavigationBarItem(
+                        selected = currentScreen is Screen.ChatsTab,
+                        onClick = { currentScreen = Screen.ChatsTab },
+                        icon = { Icon(Icons.Filled.Chat, contentDescription = null) },
+                        label = { Text("چت‌ها") }
+                    )
+                    NavigationBarItem(
+                        selected = currentScreen is Screen.ContactsTab,
+                        onClick = { currentScreen = Screen.ContactsTab },
+                        icon = { Icon(Icons.Filled.People, contentDescription = null) },
+                        label = { Text("مخاطبین") }
+                    )
+                    NavigationBarItem(
+                        selected = currentScreen is Screen.SettingsTab,
+                        onClick = { currentScreen = Screen.SettingsTab },
+                        icon = { Icon(Icons.Filled.Settings, contentDescription = null) },
+                        label = { Text("تنظیمات") }
+                    )
+                }
+            }
+        }
+    ) { padding ->
+        Box(modifier = Modifier.padding(padding)) {
+            when (val screen = currentScreen) {
+                is Screen.ChatsTab -> ChatListScreen(
+                    onChatClick = { chat -> currentScreen = Screen.ChatDetail(chat) }
+                )
+                is Screen.ContactsTab -> ContactsScreen()
+                is Screen.SettingsTab -> SettingsScreen()
+                is Screen.ChatDetail -> ChatDetailScreen(
+                    chat = screen.chat,
+                    onBack = { currentScreen = Screen.ChatsTab }
+                )
+            }
+        }
+    }
+}package com.example.payamyar
+
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.*
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+
+@Composable
+fun ChatListScreen(onChatClick: (Chat) -> Unit) {
+    Column(modifier = Modifier.fillMaxSize()) {
+        TopAppBar(title = { Text("پیام یار") })
+
+        LazyColumn(modifier = Modifier.fillMaxSize()) {
+            items(DemoData.chats) { chat ->
+                ChatRow(chat = chat, onClick = { onChatClick(chat) })
+                Divider()
+            }
+        }
+    }
+}
+
+@Composable
+fun ChatRow(chat: Chat, onClick: () -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onClick() }
+            .padding(horizontal = 16.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Box(
+            modifier = Modifier
+                .size(48.dp)
+                .background(Color(chat.avatarColorArgb), CircleShape),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(chat.avatarLetter, color = Color.White, fontSize = 18.sp)
+        }
+
+        Spacer(modifier = Modifier.width(12.dp))
+
+        Column(modifier = Modifier.weight(1f)) {
+            Text(chat.name, fontWeight = FontWeight.Bold)
+            Spacer(modifier = Modifier.height(2.dp))
+            Text(
+                chat.lastMessage,
+                color = Color.Gray,
+                fontSize = 13.sp,
+                maxLines = 1
+            )
+        }
+
+        Column(horizontalAlignment = Alignment.End) {
+            Text(chat.time, color = Color.Gray, fontSize = 11.sp)
+            if (chat.unreadCount > 0) {
+                Spacer(modifier = Modifier.height(4.dp))
+                Box(
+                    modifier = Modifier
+                        .size(20.dp)
+                        .background(Color(0xFF0E9BB9), CircleShape),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        chat.unreadCount.toString(),
+                        color = Color.White,
+                        fontSize = 11.sp
+                    )
+                }
+            }
+        }
+    }
+}package com.example.payamyar
+
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.*
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+
+@Composable
+fun ContactsScreen() {
+    Column(modifier = Modifier.fillMaxSize()) {
+        TopAppBar(title = { Text("مخاطبین") })
+
+        LazyColumn(modifier = Modifier.fillMaxSize()) {
+            items(DemoData.contacts) { contact ->
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 10.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(44.dp)
+                            .background(Color(contact.avatarColorArgb), CircleShape),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(contact.avatarLetter, color = Color.White, fontSize = 16.sp)
+                    }
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Column {
+                        Text(contact.name, fontWeight = FontWeight.Bold)
+                        Text(contact.status, color = Color.Gray, fontSize = 12.sp)
+                    }
+                }
+                Divider()
+            }
+        }
+    }
+}package com.example.payamyar
+
+import androidx.compose.foundation.layout.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+
+@Composable
+fun SettingsScreen() {
+    Column(modifier = Modifier.fillMaxSize()) {
+        TopAppBar(title = { Text("تنظیمات") })
+
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text("پیام یار", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleLarge)
+            Spacer(modifier = Modifier.height(4.dp))
+            Text("نسخه ۱.۰ — نسخه نمایشی (بدون سرور)")
+            Spacer(modifier = Modifier.height(24.dp))
+            Text("این اپ فعلاً به‌صورت محلی کار می‌کند. برای پیام‌رسانی واقعی بین دو گوشی، افزودن یک سرور لازم است.")
+        }
+    }
+}name: Build APK
+
+on:
+  push:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Build debug APK
+        run: gradle assembleDebug
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: payam-yar-apk
+          path: app/build/outputs/apk/debug/app-debug.apk
